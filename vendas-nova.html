@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova Venda — TSTechStore</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>const t=localStorage.getItem('ts-theme')||'dark';document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    .search-result-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+    .search-result-item:hover { background: var(--surface-hover); }
+    .search-result-item:last-child { border-bottom: none; }
+
+    #clientResults, #productResults {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+      background: var(--surface);
+      border: 1.5px solid var(--border-strong);
+      border-top: none;
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      max-height: 280px; overflow-y: auto;
+      box-shadow: var(--shadow-md);
+    }
+
+    .wizard-panel { animation: fadeIn 0.2s ease; }
+
+    .payment-fields {
+      animation: slideUp 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <main class="main-content">
+    <div class="page-content">
+
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
+        <a href="vendas.html" class="btn btn-ghost btn-icon">
+          <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
+        </a>
+        <div>
+          <h1 class="page-title">Nova Venda</h1>
+          <p class="page-subtitle">Registre uma venda em 3 passos simples</p>
+        </div>
+      </div>
+
+      <!-- Wizard container -->
+      <div id="wizardContainer" style="max-width:680px;margin:0 auto">
+
+        <!-- Stepper -->
+        <div class="wizard-steps" style="margin-bottom:32px">
+          <div class="wizard-step active" id="step1">
+            <div class="step-circle">1</div>
+            <span class="step-label">Cliente</span>
+          </div>
+          <div class="step-line" id="line1"></div>
+          <div class="wizard-step" id="step2">
+            <div class="step-circle">2</div>
+            <span class="step-label">Produto</span>
+          </div>
+          <div class="step-line" id="line2"></div>
+          <div class="wizard-step" id="step3">
+            <div class="step-circle">3</div>
+            <span class="step-label">Pagamento</span>
+          </div>
+        </div>
+
+        <!-- =================== STEP 1 — CLIENTE =================== -->
+        <div class="wizard-panel card" id="panel1">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+            <div style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--accent-light);display:flex;align-items:center;justify-content:center">
+              <i data-lucide="user" style="width:18px;height:18px;color:var(--accent)"></i>
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:15px">Selecionar Cliente</div>
+              <div style="font-size:12px;color:var(--text-muted)">Busque pelo nome, CPF ou telefone</div>
+            </div>
+          </div>
+
+          <div class="form-group" style="position:relative">
+            <label class="form-label">Cliente *</label>
+            <input class="form-input" id="clientSearch" type="text" placeholder="Digite o nome do cliente..." autocomplete="off">
+            <div id="clientResults"></div>
+          </div>
+
+          <div id="selectedClientPreview" style="margin-bottom:16px"></div>
+
+          <div style="display:flex;gap:10px;justify-content:space-between;align-items:center">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="openNewClientInline()">
+              <i data-lucide="user-plus" style="width:13px;height:13px"></i>
+              Novo cliente
+            </button>
+            <button class="btn btn-primary" onclick="goToStep(2)">
+              Próximo — Produto
+              <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- =================== STEP 2 — PRODUTO =================== -->
+        <div class="wizard-panel card hidden" id="panel2">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+            <div style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--accent-2-light);display:flex;align-items:center;justify-content:center">
+              <i data-lucide="package" style="width:18px;height:18px;color:var(--accent-2)"></i>
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:15px">Selecionar Produto</div>
+              <div style="font-size:12px;color:var(--text-muted)">Busque pelo nome, marca ou modelo</div>
+            </div>
+          </div>
+
+          <div class="form-group" style="position:relative">
+            <label class="form-label">Produto *</label>
+            <input class="form-input" id="productSearch" type="text" placeholder="Ex: iPhone, Samsung..." autocomplete="off">
+            <div id="productResults"></div>
+          </div>
+
+          <div id="selectedProductPreview" style="margin-bottom:16px"></div>
+
+          <div style="display:flex;justify-content:space-between">
+            <button class="btn btn-ghost" onclick="goToStep(1)">
+              <i data-lucide="arrow-left" style="width:14px;height:14px"></i>
+              Voltar
+            </button>
+            <button class="btn btn-primary" onclick="goToStep(3)">
+              Próximo — Pagamento
+              <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- =================== STEP 3 — PAGAMENTO =================== -->
+        <div class="wizard-panel card hidden" id="panel3">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+            <div style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--warning-light);display:flex;align-items:center;justify-content:center">
+              <i data-lucide="credit-card" style="width:18px;height:18px;color:var(--warning)"></i>
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:15px">Forma de Pagamento</div>
+              <div style="font-size:12px;color:var(--text-muted)">Escolha como será pago</div>
+            </div>
+          </div>
+
+          <!-- Cards de pagamento -->
+          <div class="payment-cards" style="margin-bottom:20px">
+            <div class="payment-card" data-payment="pix" onclick="selectPaymentType('pix')">
+              <div class="payment-emoji">⚡</div>
+              <div class="payment-name">PIX</div>
+              <div class="payment-desc">À vista, sem taxas</div>
+            </div>
+            <div class="payment-card" data-payment="cartao_credito" onclick="selectPaymentType('cartao_credito')">
+              <div class="payment-emoji">💳</div>
+              <div class="payment-name">CARTÃO</div>
+              <div class="payment-desc">1x a 12x</div>
+            </div>
+            <div class="payment-card" data-payment="crediario" onclick="selectPaymentType('crediario')">
+              <div class="payment-emoji">🏪</div>
+              <div class="payment-name">CREDIÁRIO</div>
+              <div class="payment-desc">Parcelado próprio</div>
+            </div>
+          </div>
+
+          <!-- Campos PIX -->
+          <div class="payment-fields hidden" id="fields-pix">
+            <div style="background:var(--accent-2-light);border:1px solid rgba(0,212,170,0.2);border-radius:var(--radius-md);padding:14px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--accent-2);margin-bottom:4px">
+                <i data-lucide="zap" style="width:15px;height:15px"></i> PIX — Pagamento Imediato
+              </div>
+              <div style="font-size:12.5px;color:var(--text-muted)">A venda será registrada como quitada automaticamente.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor da venda (R$) *</label>
+              <input class="form-input price-input" id="pixPrice" type="number" step="0.01" min="0" placeholder="0.00">
+            </div>
+          </div>
+
+          <!-- Campos Cartão -->
+          <div class="payment-fields hidden" id="fields-cartao_credito">
+            <div style="background:var(--accent-light);border:1px solid rgba(108,99,255,0.2);border-radius:var(--radius-md);padding:14px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--accent);margin-bottom:4px">
+                <i data-lucide="credit-card" style="width:15px;height:15px"></i> Cartão de Crédito
+              </div>
+              <div style="font-size:12.5px;color:var(--text-muted)">A venda será registrada como quitada. A taxa da maquininha é informativa.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor da venda (R$) *</label>
+              <input class="form-input price-input" id="cartaoPrice" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcCardPreview()">
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label class="form-label">Parcelas no cartão</label>
+                <select class="form-select" id="cardInstallments" onchange="calcCardPreview()">
+                  <option value="1">1x (à vista)</option>
+                  <option value="2">2x</option>
+                  <option value="3">3x</option>
+                  <option value="4">4x</option>
+                  <option value="5">5x</option>
+                  <option value="6">6x</option>
+                  <option value="7">7x</option>
+                  <option value="8">8x</option>
+                  <option value="9">9x</option>
+                  <option value="10">10x</option>
+                  <option value="11">11x</option>
+                  <option value="12">12x</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Taxa maquininha (%)</label>
+                <input class="form-input" id="cardFeePercent" type="number" step="0.01" min="0" max="20" placeholder="0.00" value="0" oninput="calcCardPreview()">
+              </div>
+            </div>
+            <div id="cardPreview"></div>
+          </div>
+
+          <!-- Campos Crediário -->
+          <div class="payment-fields hidden" id="fields-crediario">
+            <div style="background:var(--warning-light);border:1px solid rgba(255,165,2,0.2);border-radius:var(--radius-md);padding:14px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--warning);margin-bottom:4px">
+                <i data-lucide="store" style="width:15px;height:15px"></i> Crediário Próprio
+              </div>
+              <div style="font-size:12.5px;color:var(--text-muted)">As parcelas serão geradas automaticamente no sistema.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor total da venda (R$) *</label>
+              <input class="form-input price-input" id="crediarioPrice" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcInstallmentPreview()">
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group">
+                <label class="form-label">Entrada (R$)</label>
+                <input class="form-input" id="downPayment" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcInstallmentPreview()">
+                <div class="form-hint">Deixe 0 se não houver entrada</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Número de parcelas *</label>
+                <select class="form-select" id="installmentsCount" onchange="calcInstallmentPreview()">
+                  <option value="1">1x</option>
+                  <option value="2">2x</option>
+                  <option value="3" selected>3x</option>
+                  <option value="4">4x</option>
+                  <option value="5">5x</option>
+                  <option value="6">6x</option>
+                  <option value="7">7x</option>
+                  <option value="8">8x</option>
+                  <option value="9">9x</option>
+                  <option value="10">10x</option>
+                  <option value="12">12x</option>
+                  <option value="18">18x</option>
+                  <option value="24">24x</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data do 1° vencimento *</label>
+              <input class="form-input" id="firstDueDate" type="date">
+            </div>
+            <div id="installmentPreview"></div>
+          </div>
+
+          <!-- Observações -->
+          <div class="form-group" style="margin-top:16px">
+            <label class="form-label">Observações da venda</label>
+            <textarea class="form-textarea" id="saleNotes" placeholder="Opcional — IMEI, cor, acessórios inclusos..."></textarea>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;margin-top:8px">
+            <button class="btn btn-ghost" onclick="goToStep(2)">
+              <i data-lucide="arrow-left" style="width:14px;height:14px"></i>
+              Voltar
+            </button>
+            <button class="btn btn-success btn-lg" onclick="submitSale()" id="btnConfirmSale">
+              <i data-lucide="check-circle" style="width:16px;height:16px"></i>
+              Confirmar Venda
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/vendas.js"></script>
+<script>
+  // Define data padrão do primeiro vencimento (30 dias à frente)
+  document.addEventListener('DOMContentLoaded', () => {
+    const nextMonth = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    const firstDue = document.getElementById('firstDueDate');
+    if (firstDue) firstDue.value = nextMonth;
+  });
+
+  function openNewClientInline() {
+    openNewClientModal();
+  }
+</script>
+</body>
+</html>

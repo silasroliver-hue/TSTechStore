@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clientes — TSTechStore</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>const t=localStorage.getItem('ts-theme')||'dark';document.documentElement.setAttribute('data-theme',t);</script>
+  <style>
+    .search-result-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+    .search-result-item:hover { background: var(--surface-hover); }
+    .search-result-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <main class="main-content">
+    <div class="page-content">
+
+      <!-- Cabeçalho -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <h1 class="page-title">Clientes</h1>
+          <p class="page-subtitle">Gerencie sua base de clientes</p>
+        </div>
+        <button class="btn btn-primary" id="btnNewClient" onclick="openNewClientModal()">
+          <i data-lucide="user-plus" style="width:15px;height:15px"></i>
+          Novo Cliente
+        </button>
+      </div>
+
+      <!-- Stats rápidos -->
+      <div class="grid-4" style="margin-bottom:20px">
+        <div class="card" style="text-align:center;padding:14px">
+          <div style="font-size:22px;font-weight:800;color:var(--text)" id="totalClients">—</div>
+          <div style="font-size:11.5px;color:var(--text-muted)">Total de Clientes</div>
+        </div>
+        <div class="card" style="text-align:center;padding:14px;--card-accent:var(--success)" onclick="setFilter('em_dia')" class="cursor-pointer">
+          <div style="font-size:22px;font-weight:800;color:var(--success)" id="clientsEmDia">—</div>
+          <div style="font-size:11.5px;color:var(--text-muted)">Em Dia</div>
+        </div>
+        <div class="card" style="text-align:center;padding:14px" onclick="setFilter('atrasado')">
+          <div style="font-size:22px;font-weight:800;color:var(--warning)" id="clientsAtrasado">—</div>
+          <div style="font-size:11.5px;color:var(--text-muted)">Atrasados</div>
+        </div>
+        <div class="card" style="text-align:center;padding:14px" onclick="setFilter('inadimplente')">
+          <div style="font-size:22px;font-weight:800;color:var(--danger)" id="clientsInadim">—</div>
+          <div style="font-size:11.5px;color:var(--text-muted)">Inadimplentes</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="search-bar">
+          <i data-lucide="search" class="search-icon"></i>
+          <input class="search-input" id="searchInput" type="text" placeholder="Buscar por nome, CPF ou telefone...">
+        </div>
+
+        <div class="filter-pills">
+          <button class="filter-pill active" data-filter="" onclick="setFilter('')">Todos</button>
+          <button class="filter-pill" data-filter="em_dia" onclick="setFilter('em_dia')">✅ Em dia</button>
+          <button class="filter-pill" data-filter="atrasado" onclick="setFilter('atrasado')">⚠️ Atrasados</button>
+          <button class="filter-pill" data-filter="inadimplente" onclick="setFilter('inadimplente')">🔴 Inadimplentes</button>
+        </div>
+
+        <div class="toolbar-right">
+          <div class="view-toggle">
+            <button class="view-toggle-btn active" id="btnViewGrid" onclick="setView('grid')" title="Visualização em cards">
+              <i data-lucide="layout-grid" style="width:15px;height:15px"></i>
+            </button>
+            <button class="view-toggle-btn" id="btnViewTable" onclick="setView('table')" title="Visualização em tabela">
+              <i data-lucide="list" style="width:15px;height:15px"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Container principal -->
+      <div id="clientsContainer">
+        <!-- Injetado por clientes.js -->
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/clientes.js"></script>
+</body>
+</html>

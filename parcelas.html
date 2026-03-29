@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parcelas — TSTechStore</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>const t=localStorage.getItem('ts-theme')||'dark';document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body>
+<div class="app-layout">
+  <main class="main-content">
+    <div class="page-content">
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h1 class="page-title">Parcelas</h1>
+          <p class="page-subtitle">Cobranças e recebimentos do crediário</p>
+        </div>
+        <!-- Hero badge de atraso -->
+        <div id="overdueHero"></div>
+      </div>
+
+      <!-- Stats rápidos -->
+      <div class="grid-2" style="margin-bottom:20px">
+        <div class="card" style="padding:16px;display:flex;align-items:center;gap:14px">
+          <div style="width:42px;height:42px;border-radius:var(--radius-md);background:var(--danger-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i data-lucide="alert-circle" style="width:20px;height:20px;color:var(--danger)"></i>
+          </div>
+          <div>
+            <div style="font-size:24px;font-weight:800;color:var(--danger)" id="overdueCount">—</div>
+            <div style="font-size:12px;color:var(--text-muted)">Parcelas Atrasadas</div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px;display:flex;align-items:center;gap:14px">
+          <div style="width:42px;height:42px;border-radius:var(--radius-md);background:var(--accent-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i data-lucide="wallet" style="width:20px;height:20px;color:var(--accent)"></i>
+          </div>
+          <div>
+            <div style="font-size:20px;font-weight:800;color:var(--accent)" id="totalOpen">—</div>
+            <div style="font-size:12px;color:var(--text-muted)">Total em Aberto</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="toolbar" style="margin-bottom:16px">
+        <div class="search-bar">
+          <i data-lucide="search" class="search-icon"></i>
+          <input class="search-input" id="searchParcelas" type="text" placeholder="Buscar por cliente ou produto...">
+        </div>
+        <div class="filter-pills">
+          <button class="filter-pill active" data-filter="todas" onclick="setParcelasFilter('todas')">Todas</button>
+          <button class="filter-pill" data-filter="hoje" onclick="setParcelasFilter('hoje')">📅 Hoje</button>
+          <button class="filter-pill" data-filter="atrasadas" onclick="setParcelasFilter('atrasadas')">🔴 Atrasadas</button>
+          <button class="filter-pill" data-filter="semana" onclick="setParcelasFilter('semana')">📆 Esta Semana</button>
+          <button class="filter-pill" data-filter="mes" onclick="setParcelasFilter('mes')">🗓️ Este Mês</button>
+        </div>
+      </div>
+
+      <!-- Lista de parcelas -->
+      <div id="parcelasContainer">
+        <!-- Injetado por parcelas.js -->
+      </div>
+
+      <!-- Paginação -->
+      <div id="paginationContainer"></div>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/parcelas.js"></script>
+</body>
+</html>

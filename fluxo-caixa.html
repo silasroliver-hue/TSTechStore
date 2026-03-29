@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fluxo de Caixa — TSTechStore</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>const t=localStorage.getItem('ts-theme')||'dark';document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body>
+<div class="app-layout">
+  <main class="main-content">
+    <div class="page-content">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h1 class="page-title">Fluxo de Caixa</h1>
+          <p class="page-subtitle">Movimentações completas de entradas e saídas</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <a href="financeiro.html" class="btn btn-ghost btn-sm">
+            <i data-lucide="bar-chart-2" style="width:13px;height:13px"></i>
+            Ver Relatório
+          </a>
+          <button class="btn btn-danger btn-sm" onclick="openNewExpenseModal()">
+            <i data-lucide="minus-circle" style="width:13px;height:13px"></i>
+            Nova Despesa
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtro de datas -->
+      <div class="card" style="margin-bottom:20px;padding:14px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:600;color:var(--text-muted)">Período:</div>
+          <input class="form-input" id="fluxoFrom" type="date" style="width:145px;padding:7px 10px">
+          <span style="color:var(--text-muted)">até</span>
+          <input class="form-input" id="fluxoTo" type="date" style="width:145px;padding:7px 10px">
+          <button class="btn btn-primary btn-sm" onclick="loadFluxoCaixa()">
+            <i data-lucide="filter" style="width:13px;height:13px"></i>
+            Filtrar
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumo do período -->
+      <div id="fluxoSummary" style="margin-bottom:20px">
+        <div class="grid-3">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+      </div>
+
+      <!-- Tabela de movimentos -->
+      <div class="table-wrapper">
+        <div class="table-header">
+          <div class="table-title">
+            <i data-lucide="list" style="width:15px;height:15px;color:var(--accent);margin-right:6px"></i>
+            Movimentações
+          </div>
+          <div style="font-size:12px;color:var(--text-muted)">Entradas (recebimentos) e Saídas (despesas)</div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Descrição / Cliente</th>
+              <th>Categoria / Método</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody id="fluxoBody">
+            <!-- Injetado por financeiro.js -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/financeiro.js"></script>
+</body>
+</html>

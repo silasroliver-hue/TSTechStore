@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financeiro — TSTechStore</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>const t=localStorage.getItem('ts-theme')||'dark';document.documentElement.setAttribute('data-theme',t);</script>
+</head>
+<body>
+<div class="app-layout">
+  <main class="main-content">
+    <div class="page-content">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h1 class="page-title">Financeiro</h1>
+          <p class="page-subtitle">Análise de entradas, saídas e lucro</p>
+        </div>
+        <button class="btn btn-danger" onclick="openNewExpenseModal()">
+          <i data-lucide="minus-circle" style="width:15px;height:15px"></i>
+          Registrar Despesa
+        </button>
+      </div>
+
+      <!-- Filtro de período -->
+      <div class="card" style="margin-bottom:20px;padding:16px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:600;color:var(--text-muted);white-space:nowrap">Período:</div>
+
+          <div class="filter-pills">
+            <button class="period-btn filter-pill" data-period="semana" onclick="">Semana</button>
+            <button class="period-btn filter-pill active" data-period="mes" onclick="">Mês</button>
+            <button class="period-btn filter-pill" data-period="trimestre" onclick="">Trimestre</button>
+            <button class="period-btn filter-pill" data-period="ano" onclick="">Ano</button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
+            <input class="form-input" id="dateFrom" type="date" style="width:140px;padding:7px 10px">
+            <span style="color:var(--text-muted);font-size:13px">até</span>
+            <input class="form-input" id="dateTo" type="date" style="width:140px;padding:7px 10px">
+            <button class="btn btn-primary btn-sm" id="btnApplyFilter">
+              <i data-lucide="filter" style="width:13px;height:13px"></i>
+              Aplicar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Métricas financeiras -->
+      <div class="grid-3" id="finMetrics" style="margin-bottom:24px">
+        <div class="metric-card"><div class="skeleton" style="height:100px;border-radius:var(--radius-md)"></div></div>
+        <div class="metric-card"><div class="skeleton" style="height:100px;border-radius:var(--radius-md)"></div></div>
+        <div class="metric-card"><div class="skeleton" style="height:100px;border-radius:var(--radius-md)"></div></div>
+      </div>
+
+      <!-- Gráfico -->
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:24px">
+        <div class="table-header">
+          <div class="table-title">
+            <i data-lucide="bar-chart-2" style="width:15px;height:15px;color:var(--accent);margin-right:6px"></i>
+            Entradas vs Saídas no Período
+          </div>
+        </div>
+        <div style="padding:16px;height:260px">
+          <canvas id="finChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabela de despesas -->
+      <div class="table-wrapper">
+        <div class="table-header">
+          <div class="table-title">
+            <i data-lucide="receipt" style="width:15px;height:15px;color:var(--danger);margin-right:6px"></i>
+            Despesas do Período
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="openNewExpenseModal()">
+            <i data-lucide="plus" style="width:13px;height:13px"></i>
+            Nova Despesa
+          </button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th>Valor</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="expensesBody">
+            <!-- Injetado por financeiro.js -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/financeiro.js"></script>
+</body>
+</html>

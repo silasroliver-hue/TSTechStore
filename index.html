@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — TSTechStore</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>
+    // Aplica tema antes do render para evitar flash
+    const t = localStorage.getItem('ts-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  </script>
+</head>
+<body>
+<div class="app-layout">
+  <!-- Sidebar injetada por ui.js -->
+  <main class="main-content">
+    <!-- Header injetado por ui.js -->
+    <div class="page-content">
+
+      <!-- Título da página -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">Visão geral do negócio em tempo real</p>
+        </div>
+        <a href="vendas-nova.html" class="btn btn-primary">
+          <i data-lucide="plus" style="width:15px;height:15px"></i>
+          Nova Venda
+        </a>
+      </div>
+
+      <!-- Métricas -->
+      <div class="grid-4" id="metricsGrid" style="margin-bottom:24px">
+        <!-- Injetado por dashboard.js -->
+      </div>
+
+      <!-- Gráficos -->
+      <div class="grid-2" style="margin-bottom:24px">
+        <!-- Gráfico entradas vs saídas -->
+        <div class="card col-span-1" style="padding:0;overflow:hidden">
+          <div class="table-header">
+            <div class="table-title">
+              <i data-lucide="trending-up" style="width:15px;height:15px;color:var(--accent);margin-right:6px"></i>
+              Entradas vs Saídas — 30 dias
+            </div>
+            <div style="display:flex;gap:12px;font-size:12px">
+              <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#6C63FF;display:inline-block"></span>Entradas</span>
+              <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#FF4757;display:inline-block"></span>Saídas</span>
+            </div>
+          </div>
+          <div style="padding:16px;height:220px">
+            <canvas id="chartEntradasSaidas"></canvas>
+          </div>
+        </div>
+
+        <!-- Painel direito: donut + parcelas -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <!-- Mini donut -->
+          <div class="card" style="padding:16px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:14px">
+              <i data-lucide="pie-chart" style="width:14px;height:14px;color:var(--accent);margin-right:5px"></i>
+              Breakdown de Recebimentos
+            </div>
+            <div style="display:flex;align-items:center;gap:16px">
+              <div style="width:100px;height:100px;flex-shrink:0">
+                <canvas id="chartBreakdown"></canvas>
+              </div>
+              <div class="chart-legend" id="breakdownLegend" style="flex:1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parcelas vencendo -->
+      <div class="grid-2" style="margin-bottom:24px">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-header">
+            <div class="table-title">
+              <i data-lucide="calendar-clock" style="width:15px;height:15px;color:var(--warning);margin-right:6px"></i>
+              Parcelas Vencendo Esta Semana
+            </div>
+            <a href="parcelas.html" style="font-size:12px;color:var(--accent);font-weight:600">Ver todas →</a>
+          </div>
+          <div style="padding:16px" id="upcomingInstallments">
+            <!-- Injetado por dashboard.js -->
+          </div>
+        </div>
+
+        <!-- Últimas vendas -->
+        <div class="table-wrapper" style="overflow:hidden">
+          <div class="table-header">
+            <div class="table-title">
+              <i data-lucide="shopping-cart" style="width:15px;height:15px;color:var(--accent-2);margin-right:6px"></i>
+              Últimas Vendas
+            </div>
+            <a href="vendas.html" style="font-size:12px;color:var(--accent);font-weight:600">Ver todas →</a>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Produto</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody id="recentSalesBody">
+              <!-- Injetado por dashboard.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- CDN -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/dashboard.js"></script>
+</body>
+</html>
