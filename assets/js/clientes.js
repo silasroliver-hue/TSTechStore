@@ -281,6 +281,13 @@ async function deleteClient(id, name) {
   const confirmed = await confirmDialog(`Deseja excluir o cliente <strong>${name}</strong>? Esta ação não pode ser desfeita.`);
   if (!confirmed) return;
 
+  // Verifica se o cliente possui vendas registradas
+  const { data: vendas } = await supabase.from('sales').select('id').eq('client_id', id).limit(1);
+  if (vendas && vendas.length > 0) {
+    showToast('Não é possível excluir: cliente possui vendas registradas', 'error');
+    return;
+  }
+
   const { error } = await db.deleteClient(id);
   if (error) { showToast('Erro ao excluir cliente', 'error'); return; }
 

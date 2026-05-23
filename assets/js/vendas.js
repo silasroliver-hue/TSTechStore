@@ -88,11 +88,12 @@ function setSalesFilter(filter) {
 }
 
 function updateSalesStats() {
-  const total = allSales.reduce((s, v) => s + parseFloat(v.total_amount), 0);
+  const naoCanceladas = allSales.filter(v => v.status !== 'cancelada');
+  const total = naoCanceladas.reduce((s, v) => s + parseFloat(v.total_amount), 0);
   const ativas = allSales.filter(v => v.status === 'ativa').length;
   const quitadas = allSales.filter(v => v.status === 'quitada').length;
 
-  document.getElementById('statTotalVendas').textContent = allSales.length;
+  document.getElementById('statTotalVendas').textContent = naoCanceladas.length;
   document.getElementById('statTotalValor').textContent = formatCurrency(total);
   document.getElementById('statAtivas').textContent = ativas;
   document.getElementById('statQuitadas').textContent = quitadas;
@@ -205,8 +206,6 @@ async function quickPayInstallmentSale(installmentId, saleId) {
   closeDrawer();
   await loadSales();
 }
-
-document.addEventListener('DOMContentLoaded', initVendas);
 
 /* =============================================
    NOVA VENDA — WIZARD (vendas-nova.html)
