@@ -117,68 +117,173 @@ async function openEditSaleModal(id) {
   const { data: sale, error } = await db.getSale(id);
   if (error || !sale) { showToast('Erro ao carregar venda', 'error'); return; }
 
-  const { data: installments } = await supabase
-    .from('installments')
-    .select('*')
-    .eq('sale_id', id)
-    .neq('status', 'pago')
-    .order('installment_number');
+  const { data: allInst } = await supabase
+    .from('installments').select('*').eq('sale_id', id).order('installment_number');
 
-  const pending = installments || [];
+  const paid    = (allInst || []).filter(i => i.status === 'pago');
+  const pending = (allInst || []).filter(i => i.status !== 'pago');
+  const paidTotal   = paid.reduce((s, i) => s + parseFloat(i.amount), 0);
+  const downPayment = parseFloat(sale.down_payment || 0);
 
   showModal(`Editar Venda — ${sale.clients?.name}`, `
-    <div style="margin-bottom:16px;padding:12px;background:var(--surface-2);border-radius:var(--radius-md)">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${sale.products?.name}</div>
-      <div style="font-size:18px;font-weight:800;color:var(--success)">${formatCurrency(sale.total_amount)}</div>
+    <div style="padding:12px;background:var(--surface-2);border-radius:var(--radius-md);margin-bottom:16px;font-size:13px">
+      <div style="color:var(--text-muted);margin-bottom:2px">${sale.products?.name}</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px">
+        ${downPayment > 0 ? `<span>Entrada: <strong style="color:var(--success)">${formatCurrency(downPayment)}</strong></span>` : ''}
+        ${paid.length > 0 ? `<span>Pago: <strong style="color:var(--success)">${formatCurrency(paidTotal)}</strong> (${paid.length} parc.)</span>` : ''}
+        <span>Em aberto: <strong>${pending.length} parcelas</strong></span>
+      </div>
+    </div>
+
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">Valor total (R$)</label>
+        <input class="form-input" id="editTotalAmount" type="number" step="0.01" min="0.01"
+          value="${parseFloat(sale.total_amount).toFixed(2)}"
+          data-down="${downPayment}" data-paid="${paidTotal}"
+          oninput="calcEditPreview()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Parcelas restantes</label>
+        <input class="form-input" id="editPendingCount" type="number" min="1"
+          value="${pending.length}"
+          oninput="calcEditPreview()">
+      </div>
+    </div>
+
+    <div id="editSalePreview" style="margin-bottom:14px"></div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <i data-lucide="calendar" style="width:13px;height:13px;color:var(--accent)"></i>
+        Datas de vencimento
+      </div>
+      <div id="editDatesContainer">
+        ${pending.map((inst, i) => `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:12px;color:var(--text-muted);width:52px;flex-shrink:0">Parc. ${inst.installment_number}</span>
+            <input class="form-input" id="instDate_${i}" type="date" value="${inst.due_date}" style="padding:7px 10px;font-size:13px">
+          </div>`).join('')}
+      </div>
     </div>
 
     <div class="form-group">
       <label class="form-label">Observações</label>
       <input class="form-input" id="editSaleNotes" type="text" placeholder="Opcional..." value="${sale.notes || ''}">
     </div>
-
-    ${pending.length ? `
-      <div style="margin-top:4px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px">
-          <i data-lucide="calendar-clock" style="width:14px;height:14px;color:var(--accent)"></i>
-          Parcelas em aberto (${pending.length})
-        </div>
-        <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 10px;align-items:center;font-size:12px;color:var(--text-muted);margin-bottom:6px;padding:0 2px">
-          <span></span><span>Valor (R$)</span><span>Vencimento</span>
-        </div>
-        ${pending.map(inst => `
-          <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 10px;align-items:center;margin-bottom:8px">
-            <span style="font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap">Parc. ${inst.installment_number}</span>
-            <input class="form-input" id="instAmt_${inst.id}" type="number" step="0.01" min="0.01" value="${parseFloat(inst.amount).toFixed(2)}" style="padding:7px 10px;font-size:13px">
-            <input class="form-input" id="instDate_${inst.id}" type="date" value="${inst.due_date}" style="padding:7px 10px;font-size:13px">
-          </div>`).join('')}
-      </div>
-    ` : `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px">Sem parcelas pendentes.</div>`}
   `, {
     icon: 'pencil',
     footer: `
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveEditSale('${id}', ${JSON.stringify(pending.map(i => i.id))})" id="btnSaveEdit">
+      <button class="btn btn-primary" onclick="saveEditSale('${id}', ${pending.length}, ${paid.length ? paid[paid.length-1].installment_number : 0})" id="btnSaveEdit">
         <i data-lucide="save" style="width:14px;height:14px"></i> Salvar Alterações
       </button>`
   });
+
+  calcEditPreview();
 }
 
-async function saveEditSale(saleId, installmentIds) {
+function calcEditPreview() {
+  const totalInput  = document.getElementById('editTotalAmount');
+  const countInput  = document.getElementById('editPendingCount');
+  const newTotal    = parseFloat(totalInput?.value) || 0;
+  const newCount    = parseInt(countInput?.value) || 1;
+  const downPayment = parseFloat(totalInput?.dataset.down || 0);
+  const paidTotal   = parseFloat(totalInput?.dataset.paid || 0);
+  const remaining   = newTotal - downPayment - paidTotal;
+  const installVal  = remaining > 0 && newCount > 0 ? remaining / newCount : 0;
+
+  const preview = document.getElementById('editSalePreview');
+  if (!preview) return;
+
+  if (remaining <= 0) {
+    preview.innerHTML = `<div style="padding:10px 12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:var(--radius-md);font-size:13px;color:var(--danger)">Valor total insuficiente para cobrir entrada e parcelas já pagas.</div>`;
+    return;
+  }
+
+  preview.innerHTML = `
+    <div style="padding:12px;background:var(--accent-light);border:1px solid rgba(108,99,255,0.2);border-radius:var(--radius-md)">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span style="color:var(--text-muted)">Saldo a parcelar:</span>
+        <strong>${formatCurrency(remaining)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;color:var(--accent)">
+        <span>${newCount}x de:</span>
+        <span>${formatCurrency(installVal)}</span>
+      </div>
+    </div>`;
+
+  // Ajusta linhas de data conforme nova quantidade
+  const container = document.getElementById('editDatesContainer');
+  if (!container) return;
+  const rows = container.querySelectorAll('[id^="instDate_"]');
+  const existingDates = Array.from(rows).map(r => r.value);
+
+  let html = '';
+  for (let i = 0; i < newCount; i++) {
+    let date = existingDates[i] || '';
+    if (!date && existingDates.length > 0) {
+      const lastDate = new Date((existingDates[existingDates.length - 1]) + 'T00:00:00');
+      lastDate.setMonth(lastDate.getMonth() + (i - existingDates.length + 1));
+      date = lastDate.toISOString().split('T')[0];
+    }
+    html += `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-size:12px;color:var(--text-muted);width:52px;flex-shrink:0">Parc. ${i + 1}</span>
+        <input class="form-input" id="instDate_${i}" type="date" value="${date}" style="padding:7px 10px;font-size:13px">
+      </div>`;
+  }
+  container.innerHTML = html;
+}
+
+async function saveEditSale(saleId, originalPendingCount, lastPaidNumber) {
   const btn = document.getElementById('btnSaveEdit');
   if (btn) btn.classList.add('btn-loading');
 
   try {
-    const notes = document.getElementById('editSaleNotes')?.value || null;
-    await db.updateSale(saleId, { notes });
+    const totalInput  = document.getElementById('editTotalAmount');
+    const newTotal    = parseFloat(totalInput?.value);
+    const newCount    = parseInt(document.getElementById('editPendingCount')?.value);
+    const downPayment = parseFloat(totalInput?.dataset.down || 0);
+    const paidTotal   = parseFloat(totalInput?.dataset.paid || 0);
+    const notes       = document.getElementById('editSaleNotes')?.value || null;
 
-    for (const instId of installmentIds) {
-      const amount = parseFloat(document.getElementById(`instAmt_${instId}`)?.value);
-      const due_date = document.getElementById(`instDate_${instId}`)?.value;
-      if (amount > 0 && due_date) {
-        await supabase.from('installments').update({ amount, due_date }).eq('id', instId);
-      }
+    if (!newTotal || newTotal <= 0 || !newCount || newCount < 1) {
+      showToast('Preencha valor total e quantidade de parcelas', 'warning');
+      if (btn) btn.classList.remove('btn-loading');
+      return;
     }
+
+    const remaining  = newTotal - downPayment - paidTotal;
+    const installVal = Math.round(remaining / newCount * 100) / 100;
+
+    // Coleta datas dos inputs
+    const dates = [];
+    for (let i = 0; i < newCount; i++) {
+      const d = document.getElementById(`instDate_${i}`)?.value;
+      if (!d) { showToast(`Preencha a data da parcela ${i + 1}`, 'warning'); if (btn) btn.classList.remove('btn-loading'); return; }
+      dates.push(d);
+    }
+
+    // Atualiza a venda
+    await db.updateSale(saleId, {
+      notes,
+      total_amount: newTotal,
+      installments_count: lastPaidNumber + newCount,
+      installment_value: installVal
+    });
+
+    // Remove parcelas pendentes antigas e recria
+    await supabase.from('installments').delete().eq('sale_id', saleId).neq('status', 'pago');
+
+    const newInstallments = dates.map((due_date, i) => ({
+      sale_id: saleId,
+      installment_number: lastPaidNumber + i + 1,
+      amount: installVal,
+      due_date,
+      status: 'pendente'
+    }));
+    await db.createInstallments(newInstallments);
 
     showToast('Venda atualizada com sucesso!', 'success');
     closeModal();
