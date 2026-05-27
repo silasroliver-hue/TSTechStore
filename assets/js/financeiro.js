@@ -420,6 +420,17 @@ function renderFluxoCaixa(payments, expenses) {
         <td style="font-weight:700;color:${isEntrada ? 'var(--success)' : 'var(--danger)'}">
           ${isEntrada ? '+' : '-'}${formatCurrency(entry.amount)}
         </td>
+        <td>
+          <div class="table-actions">
+            ${isEntrada
+              ? `<button class="btn btn-icon btn-ghost btn-sm" title="Editar pagamento" onclick="openEditPaymentModal('${entry.id}')">
+                   <i data-lucide="pencil" style="width:13px;height:13px"></i>
+                 </button>`
+              : `<button class="btn btn-icon btn-ghost btn-sm" title="Excluir despesa" onclick="deleteExpense('${entry.id}')">
+                   <i data-lucide="trash-2" style="width:13px;height:13px"></i>
+                 </button>`}
+          </div>
+        </td>
       </tr>`;
   }).join('');
 }

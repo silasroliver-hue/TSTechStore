@@ -300,11 +300,10 @@ async function openSaleDrawer(id) {
   const { data: sale, error } = await db.getSale(id);
   if (error || !sale) { showToast('Erro ao carregar venda', 'error'); return; }
 
-  const { data: installments } = await supabase
-    .from('installments')
-    .select('*')
-    .eq('sale_id', id)
-    .order('installment_number');
+  const [{ data: installments }, { data: payments }] = await Promise.all([
+    supabase.from('installments').select('*').eq('sale_id', id).order('installment_number'),
+    supabase.from('payments').select('*').eq('sale_id', id)
+  ]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -330,6 +329,7 @@ async function openSaleDrawer(id) {
         ${installments.map(inst => {
           const isOverdue = inst.due_date < today && inst.status === 'pendente';
           const statusColor = inst.status === 'pago' ? 'var(--success)' : isOverdue ? 'var(--danger)' : 'var(--text-muted)';
+          const payment = (payments || []).find(p => p.installment_id === inst.id);
           return `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
               <div>
@@ -343,7 +343,13 @@ async function openSaleDrawer(id) {
                 ${inst.status !== 'pago' ? `
                   <button class="btn btn-success btn-sm" style="margin-top:4px" onclick="quickPayInstallmentSale('${inst.id}', '${id}')">
                     Pagar
-                  </button>` : `<span class="badge badge-success" style="font-size:10px">✓ Pago</span>`}
+                  </button>` : `
+                  <div style="display:flex;align-items:center;gap:4px;margin-top:4px;justify-content:flex-end">
+                    <span class="badge badge-success" style="font-size:10px">✓ Pago</span>
+                    ${payment ? `<button class="btn btn-icon btn-ghost btn-sm" title="Editar pagamento" onclick="openEditPaymentModal('${payment.id}')">
+                      <i data-lucide="pencil" style="width:11px;height:11px"></i>
+                    </button>` : ''}
+                  </div>`}
               </div>
             </div>`;
         }).join('')}

@@ -614,3 +614,82 @@ function maskMoney(input) {
 function parseMoney(str) {
   return parseFloat((str || '0').toString().replace(',', '.').replace(/[^\d.]/g, '')) || 0;
 }
+
+/* =============================================
+   EDITAR PAGAMENTO (compartilhado entre páginas)
+   ============================================= */
+async function openEditPaymentModal(paymentId) {
+  const { data: payment, error } = await supabase
+    .from('payments')
+    .select('*, clients(name)')
+    .eq('id', paymentId)
+    .single();
+
+  if (error || !payment) { showToast('Pagamento não encontrado', 'error'); return; }
+
+  showModal('Editar Pagamento', `
+    ${payment.clients?.name ? `
+      <div style="padding:10px 12px;background:var(--surface-2);border-radius:var(--radius-md);margin-bottom:14px;font-size:13px">
+        Cliente: <strong>${payment.clients.name}</strong>
+      </div>` : ''}
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">Valor recebido (R$)</label>
+        <input class="form-input" id="editPayAmt" type="number" step="0.01" min="0.01" value="${parseFloat(payment.amount).toFixed(2)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data do pagamento</label>
+        <input class="form-input" id="editPayDate" type="date" value="${payment.payment_date}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Método de pagamento</label>
+      <select class="form-select" id="editPayMethod">
+        <option value="dinheiro"   ${payment.method === 'dinheiro'      ? 'selected' : ''}>💵 Dinheiro</option>
+        <option value="pix"        ${payment.method === 'pix'           ? 'selected' : ''}>⚡ Pix</option>
+        <option value="cartao_credito" ${payment.method === 'cartao_credito' ? 'selected' : ''}>💳 Cartão de Crédito</option>
+        <option value="crediario"  ${payment.method === 'crediario'     ? 'selected' : ''}>🏪 Crediário</option>
+        <option value="outro"      ${payment.method === 'outro'         ? 'selected' : ''}>Outro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observações</label>
+      <input class="form-input" id="editPayNotes" type="text" placeholder="Opcional..." value="${payment.notes || ''}">
+    </div>
+  `, {
+    icon: 'pencil',
+    footer: `
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditPayment('${paymentId}')" id="btnSavePayment">
+        <i data-lucide="save" style="width:14px;height:14px"></i> Salvar
+      </button>`
+  });
+}
+
+async function saveEditPayment(paymentId) {
+  const btn = document.getElementById('btnSavePayment');
+  if (btn) btn.classList.add('btn-loading');
+
+  const amount       = parseFloat(document.getElementById('editPayAmt')?.value);
+  const payment_date = document.getElementById('editPayDate')?.value;
+  const method       = document.getElementById('editPayMethod')?.value;
+  const notes        = document.getElementById('editPayNotes')?.value || null;
+
+  if (!amount || !payment_date) {
+    showToast('Preencha valor e data', 'warning');
+    if (btn) btn.classList.remove('btn-loading');
+    return;
+  }
+
+  const { error } = await supabase.from('payments').update({ amount, payment_date, method, notes }).eq('id', paymentId);
+
+  if (btn) btn.classList.remove('btn-loading');
+  if (error) { showToast('Erro ao salvar pagamento', 'error'); return; }
+
+  showToast('Pagamento atualizado!', 'success');
+  closeModal();
+
+  if (typeof loadFluxoCaixa === 'function') await loadFluxoCaixa();
+  else if (typeof loadFinanceiro === 'function') await loadFinanceiro();
+  else if (typeof loadSales === 'function') await loadSales();
+}
