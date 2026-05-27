@@ -68,6 +68,9 @@ function renderSales(search = '') {
             <i data-lucide="eye" style="width:14px;height:14px"></i>
           </button>
           ${s.status === 'ativa' ? `
+            <button class="btn btn-icon btn-ghost btn-sm" title="Editar venda" onclick="openEditSaleModal('${s.id}')">
+              <i data-lucide="pencil" style="width:14px;height:14px"></i>
+            </button>
             <button class="btn btn-icon btn-ghost btn-sm" title="Cancelar venda" onclick="cancelSale('${s.id}')">
               <i data-lucide="x-circle" style="width:14px;height:14px"></i>
             </button>
@@ -108,6 +111,84 @@ async function cancelSale(id) {
   if (error) { showToast('Erro ao cancelar', 'error'); return; }
   showToast('Venda cancelada', 'success');
   await loadSales();
+}
+
+async function openEditSaleModal(id) {
+  const { data: sale, error } = await db.getSale(id);
+  if (error || !sale) { showToast('Erro ao carregar venda', 'error'); return; }
+
+  const { data: installments } = await supabase
+    .from('installments')
+    .select('*')
+    .eq('sale_id', id)
+    .neq('status', 'pago')
+    .order('installment_number');
+
+  const pending = installments || [];
+
+  showModal(`Editar Venda — ${sale.clients?.name}`, `
+    <div style="margin-bottom:16px;padding:12px;background:var(--surface-2);border-radius:var(--radius-md)">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${sale.products?.name}</div>
+      <div style="font-size:18px;font-weight:800;color:var(--success)">${formatCurrency(sale.total_amount)}</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Observações</label>
+      <input class="form-input" id="editSaleNotes" type="text" placeholder="Opcional..." value="${sale.notes || ''}">
+    </div>
+
+    ${pending.length ? `
+      <div style="margin-top:4px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <i data-lucide="calendar-clock" style="width:14px;height:14px;color:var(--accent)"></i>
+          Parcelas em aberto (${pending.length})
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 10px;align-items:center;font-size:12px;color:var(--text-muted);margin-bottom:6px;padding:0 2px">
+          <span></span><span>Valor (R$)</span><span>Vencimento</span>
+        </div>
+        ${pending.map(inst => `
+          <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 10px;align-items:center;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap">Parc. ${inst.installment_number}</span>
+            <input class="form-input" id="instAmt_${inst.id}" type="number" step="0.01" min="0.01" value="${parseFloat(inst.amount).toFixed(2)}" style="padding:7px 10px;font-size:13px">
+            <input class="form-input" id="instDate_${inst.id}" type="date" value="${inst.due_date}" style="padding:7px 10px;font-size:13px">
+          </div>`).join('')}
+      </div>
+    ` : `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px">Sem parcelas pendentes.</div>`}
+  `, {
+    icon: 'pencil',
+    footer: `
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditSale('${id}', ${JSON.stringify(pending.map(i => i.id))})" id="btnSaveEdit">
+        <i data-lucide="save" style="width:14px;height:14px"></i> Salvar Alterações
+      </button>`
+  });
+}
+
+async function saveEditSale(saleId, installmentIds) {
+  const btn = document.getElementById('btnSaveEdit');
+  if (btn) btn.classList.add('btn-loading');
+
+  try {
+    const notes = document.getElementById('editSaleNotes')?.value || null;
+    await db.updateSale(saleId, { notes });
+
+    for (const instId of installmentIds) {
+      const amount = parseFloat(document.getElementById(`instAmt_${instId}`)?.value);
+      const due_date = document.getElementById(`instDate_${instId}`)?.value;
+      if (amount > 0 && due_date) {
+        await supabase.from('installments').update({ amount, due_date }).eq('id', instId);
+      }
+    }
+
+    showToast('Venda atualizada com sucesso!', 'success');
+    closeModal();
+    await loadSales();
+  } catch (err) {
+    console.error(err);
+    showToast('Erro ao salvar alterações', 'error');
+  }
+
+  if (btn) btn.classList.remove('btn-loading');
 }
 
 async function openSaleDrawer(id) {
