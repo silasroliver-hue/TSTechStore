@@ -257,13 +257,32 @@ function openPayModal(installmentId, clientName, amount, clientId, saleId) {
     <div class="form-row cols-2">
       <div class="form-group">
         <label class="form-label">Valor recebido (R$)</label>
-        <input class="form-input" id="payAmount" type="number" step="0.01" value="${amount}" min="0">
+        <input class="form-input" id="payAmount" type="number" step="0.01" value="${amount}" min="0"
+          oninput="updatePartialPayInfo(parseFloat(this.value)||0, ${amount})">
       </div>
       <div class="form-group">
         <label class="form-label">Data do pagamento</label>
         <input class="form-input" id="payDate" type="date" value="${today}">
       </div>
     </div>
+
+    <div id="partialPayInfo" style="display:none;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:#f59e0b;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <i data-lucide="alert-triangle" style="width:13px;height:13px"></i>
+        Pagamento parcial
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
+        Saldo de <strong id="partialBalance" style="color:var(--text)">R$ 0,00</strong> será redistribuído nas parcelas restantes.
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label" style="font-size:11px">Como redistribuir o saldo?</label>
+        <select class="form-select" id="redistributeMethod">
+          <option value="spread">Distribuir igualmente nas parcelas restantes</option>
+          <option value="last">Adicionar tudo na última parcela</option>
+        </select>
+      </div>
+    </div>
+
     <div class="form-group">
       <label class="form-label">Observações</label>
       <input class="form-input" id="payNotes" type="text" placeholder="Opcional...">
@@ -272,28 +291,74 @@ function openPayModal(installmentId, clientName, amount, clientId, saleId) {
     icon: 'check-circle',
     footer: `
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-success" onclick="confirmPayment('${installmentId}','${clientId}','${saleId}')" id="btnConfirmPay">
+      <button class="btn btn-success" onclick="confirmPayment('${installmentId}','${clientId}','${saleId}',${amount})" id="btnConfirmPay">
         <i data-lucide="check" style="width:14px;height:14px"></i> Confirmar Pagamento
       </button>`
   });
 }
 
-async function confirmPayment(installmentId, clientId, saleId) {
+function updatePartialPayInfo(paidAmount, originalAmount) {
+  const diff = originalAmount - paidAmount;
+  const infoDiv = document.getElementById('partialPayInfo');
+  const balanceEl = document.getElementById('partialBalance');
+
+  if (diff > 0.01 && paidAmount > 0) {
+    if (infoDiv) infoDiv.style.display = 'block';
+    if (balanceEl) balanceEl.textContent = formatCurrency(diff);
+    if (window.lucide) lucide.createIcons({ nodes: [infoDiv] });
+  } else {
+    if (infoDiv) infoDiv.style.display = 'none';
+  }
+}
+
+async function confirmPayment(installmentId, clientId, saleId, originalAmount) {
   const btn = document.getElementById('btnConfirmPay');
   if (btn) btn.classList.add('btn-loading');
 
   const method = document.getElementById('payMethod')?.value;
-  const amount = parseFloat(document.getElementById('payAmount')?.value) || 0;
+  const paidAmount = parseFloat(document.getElementById('payAmount')?.value) || 0;
   const date = document.getElementById('payDate')?.value;
   const notes = document.getElementById('payNotes')?.value;
+  const redistributeMethod = document.getElementById('redistributeMethod')?.value || 'spread';
 
-  if (!date || amount <= 0) {
+  if (!date || paidAmount <= 0) {
     showToast('Preencha data e valor', 'warning');
     if (btn) btn.classList.remove('btn-loading');
     return;
   }
 
   try {
+    const difference = (originalAmount || paidAmount) - paidAmount;
+
+    // Pagamento parcial: redistribui o saldo nas parcelas restantes
+    if (difference > 0.01 && saleId && saleId !== 'undefined') {
+      const { data: remaining } = await supabase
+        .from('installments')
+        .select('id, amount, installment_number')
+        .eq('sale_id', saleId)
+        .neq('id', installmentId)
+        .neq('status', 'pago')
+        .order('installment_number');
+
+      if (remaining && remaining.length > 0) {
+        if (redistributeMethod === 'last') {
+          const last = remaining[remaining.length - 1];
+          await supabase.from('installments')
+            .update({ amount: Math.round((parseFloat(last.amount) + difference) * 100) / 100 })
+            .eq('id', last.id);
+        } else {
+          const extra = difference / remaining.length;
+          for (const inst of remaining) {
+            await supabase.from('installments')
+              .update({ amount: Math.round((parseFloat(inst.amount) + extra) * 100) / 100 })
+              .eq('id', inst.id);
+          }
+        }
+      } else {
+        showToast('Sem parcelas restantes para redistribuir o saldo.', 'warning');
+      }
+    }
+
     // Marca parcela como paga
     await db.payInstallment(installmentId, new Date(date + 'T12:00:00').toISOString());
 
@@ -302,7 +367,7 @@ async function confirmPayment(installmentId, clientId, saleId) {
       installment_id: installmentId,
       sale_id: saleId,
       client_id: clientId,
-      amount,
+      amount: paidAmount,
       payment_date: date,
       method,
       notes: notes || null
@@ -313,18 +378,21 @@ async function confirmPayment(installmentId, clientId, saleId) {
 
     // Verifica se a venda foi quitada
     if (saleId && saleId !== 'undefined') {
-      const { data: remaining } = await supabase
+      const { data: remainingAfter } = await supabase
         .from('installments')
         .select('status')
         .eq('sale_id', saleId)
         .neq('status', 'pago');
 
-      if (!remaining || remaining.length === 0) {
+      if (!remainingAfter || remainingAfter.length === 0) {
         await db.updateSale(saleId, { status: 'quitada' });
       }
     }
 
-    showToast('Pagamento registrado com sucesso!', 'success');
+    const msg = difference > 0.01
+      ? `Pagamento parcial registrado! Saldo de ${formatCurrency(difference)} redistribuído.`
+      : 'Pagamento registrado com sucesso!';
+    showToast(msg, 'success');
     closeModal();
     await loadInstallments();
 
